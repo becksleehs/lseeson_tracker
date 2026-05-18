@@ -6,160 +6,173 @@
     <title>정보 교과 실시간 진도 관리</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
         body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         .tab-active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: 800; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .progress-card { transition: all 0.2s ease; }
+        .progress-card { transition: all 0.2s ease; border-left-width: 4px; }
         .progress-card:active { transform: scale(0.98); }
+        .category-header { position: sticky; top: 0; background: rgba(248, 250, 252, 0.95); backdrop-filter: blur(8px); z-index: 10; padding: 12px 0; }
+        .done-pill { background-color: #dcfce7; color: #166534; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
     </style>
 </head>
 <body class="p-4 md:p-8 text-slate-900">
-    <!-- 로딩 인디케이터 -->
-    <div id="loader" class="loading-overlay hidden">
-        <div class="flex flex-col items-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p class="mt-4 text-sm font-bold text-slate-600">데이터 동기화 중...</p>
-        </div>
-    </div>
-
     <div id="app" class="max-w-7xl mx-auto">
         <!-- 상단 헤더 -->
         <header class="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
             <div>
                 <div class="flex items-center gap-3">
                     <div class="bg-blue-600 p-2 rounded-lg text-white">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                     </div>
-                    <h1 class="text-2xl font-black tracking-tight">정보 교과 진도 매니저</h1>
+                    <h1 class="text-2xl font-black tracking-tight">정보 수업 진도 매니저</h1>
                 </div>
-                <p id="sync-status" class="text-slate-400 text-[11px] mt-1 font-medium">● 오프라인 모드 (저장 시 클라우드 시도)</p>
+                <p id="sync-status" class="text-slate-400 text-[11px] mt-1 font-medium italic">● 길벗 2022 개정 교과서 25개 소단원 완벽 정렬</p>
             </div>
             <div class="flex items-center gap-2">
                 <div id="user-display" class="hidden text-right mr-4 border-r pr-4 border-slate-200 lg:block">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">User ID</p>
-                    <p id="user-id" class="text-xs font-mono text-blue-600 font-bold"></p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">사용자 계정</p>
+                    <p id="user-id" class="text-xs font-mono text-blue-600 font-bold">인증 대기 중</p>
                 </div>
-                <button onclick="saveToCloud()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95">💾 데이터 저장</button>
+                <button onclick="saveToCloud()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all active:scale-95">진도 저장하기</button>
             </div>
         </header>
 
         <!-- 학교 탭 -->
         <nav id="school-tabs" class="flex border-b border-slate-200 mb-6 bg-white rounded-t-3xl px-6 pt-3 shadow-sm overflow-x-auto no-scrollbar">
-            <button onclick="switchTab('sj')" id="tab-sj" class="tab-btn px-6 py-4 text-sm font-semibold transition-all tab-active whitespace-nowrap">승주중 (1-1)</button>
-            <button onclick="switchTab('sn')" id="tab-sn" class="tab-btn px-6 py-4 text-sm font-semibold transition-all text-slate-400 whitespace-nowrap">승남중 (1-1)</button>
-            <button onclick="switchTab('na')" id="tab-na" class="tab-btn px-6 py-4 text-sm font-semibold transition-all text-slate-400 whitespace-nowrap">낙안중 (2-1)</button>
+            <button onclick="window.switchTab('sj')" id="tab-sj" class="tab-btn px-6 py-4 text-sm font-semibold transition-all tab-active whitespace-nowrap border-b-4">승주중 (1-1)</button>
+            <button onclick="window.switchTab('sn')" id="tab-sn" class="tab-btn px-6 py-4 text-sm font-semibold transition-all text-slate-400 whitespace-nowrap border-b-4 border-transparent">승남중 (1-1)</button>
+            <button onclick="window.switchTab('na')" id="tab-na" class="tab-btn px-6 py-4 text-sm font-semibold transition-all text-slate-400 whitespace-nowrap border-b-4 border-transparent">낙안중 (2-1)</button>
         </nav>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- 진도 리스트 -->
+            <!-- 좌측 진도표 영역 -->
             <div class="lg:col-span-7">
-                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <div id="curriculum-content" class="space-y-8">
-                        <!-- JS로 삽입됨 -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 min-h-[600px]">
+                    <div id="curriculum-content" class="space-y-12">
+                        <!-- JS 렌더링 -->
                     </div>
                 </div>
             </div>
 
-            <!-- 사이드바 -->
+            <!-- 우측 정보창 -->
             <div class="lg:col-span-5 space-y-6">
-                <!-- 달성도 -->
+                <!-- 달성도 카드 -->
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-bold text-slate-800">학교별 달성도</h2>
-                        <span id="current-school-name" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black uppercase">승주중</span>
+                        <h2 class="text-lg font-bold text-slate-800">진도율</h2>
+                        <span id="current-school-name" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black uppercase">학교명</span>
                     </div>
                     <div class="flex mb-3 items-end justify-between">
-                        <span id="progress-percent" class="text-4xl font-black text-blue-600">0%</span>
-                        <span id="progress-count" class="text-sm font-bold text-slate-400">0 / 0</span>
+                        <span id="progress-percent" class="text-5xl font-black text-blue-600">0%</span>
+                        <span id="progress-count" class="text-sm font-bold text-slate-400">0 / 25 소단원</span>
                     </div>
-                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
-                        <div id="progress-bar" style="width:0%" class="h-full bg-blue-500 transition-all duration-700"></div>
+                    <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden">
+                        <div id="progress-bar" style="width:0%" class="h-full bg-gradient-to-r from-blue-400 to-blue-600 transition-all duration-700"></div>
                     </div>
                 </div>
 
-                <!-- 학생 정보 -->
-                <div class="bg-indigo-600 p-6 rounded-3xl shadow-xl text-white">
-                    <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                        학생 구성
-                    </h2>
-                    <div id="student-info" class="text-xl font-bold bg-white/10 p-3 rounded-xl mb-3"></div>
-                    <p id="student-tip" class="text-xs text-indigo-100 bg-indigo-700/50 p-3 rounded-lg border border-indigo-500/30 leading-relaxed"></p>
+                <!-- 학급별 맞춤 팁 -->
+                <div class="bg-indigo-600 p-6 rounded-3xl shadow-xl text-white relative overflow-hidden">
+                    <div class="relative z-10">
+                        <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            교사용 수업 가이드
+                        </h2>
+                        <div id="student-info" class="text-xl font-bold bg-white/20 p-4 rounded-2xl mb-4 border border-white/30"></div>
+                        <p id="student-tip" class="text-sm text-indigo-50 leading-relaxed font-medium italic"></p>
+                    </div>
                 </div>
 
-                <!-- 메모 -->
+                <!-- 메모장 -->
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                     <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
                         <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        수업 메모
+                        수업 기록 (메모)
                     </h2>
-                    <textarea id="school-memo" oninput="handleMemoInput()" rows="6" class="w-full p-4 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:bg-white outline-none resize-none transition-all" placeholder="학교별 특이사항을 기록하세요."></textarea>
+                    <textarea id="school-memo" oninput="handleMemoInput()" rows="8" class="w-full p-5 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-3xl focus:ring-4 focus:ring-blue-100 focus:bg-white outline-none resize-none transition-all" placeholder="수업 후 주요 진척 상황이나 학생 특이사항을 적어주세요..."></textarea>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK (필요 시 로드됨) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 1. 교과 과정 및 학교 데이터 (정적) ---
+        // --- 25개 소단원 완벽 정렬 스키마 ---
         const curriculumSchema = [
-            { category: "Ⅰ. 컴퓨팅 시스템", color: "border-l-indigo-500", topics: [
-                { id: 1, sub: "컴퓨팅 시스템", desc: "구성 요소, 동작 원리" },
-                { id: 2, sub: "운영 체제", desc: "개념 및 기능" },
-                { id: 3, sub: "피지컬 컴퓨팅 시스템", desc: "구성 및 동작" },
-                { id: 4, sub: "피지컬 컴퓨팅 시스템 구현", desc: "문제 해결 실습" }
-            ]},
-            { category: "Ⅱ. 데이터", color: "border-l-cyan-500", topics: [
-                { id: 5, sub: "데이터의 표현 방식", desc: "디지털 데이터 특징" },
-                { id: 6, sub: "데이터의 디지털 표현", desc: "문자, 이미지, 소리, 영상" },
-                { id: 7, sub: "데이터 수집과 관리", desc: "수집, 분류, 공유" },
-                { id: 8, sub: "데이터 구조화", desc: "목록, 표, 다이어그램" },
-                { id: 9, sub: "데이터 분석", desc: "분석 및 시각화" }
-            ]},
-            { category: "Ⅲ. 알고리즘과 프로그래밍", color: "border-l-amber-500", topics: [
-                { id: 10, sub: "문제 이해 및 분석", desc: "해결 과정 구조화" },
-                { id: 11, sub: "핵심 요소 찾기", desc: "추상화 및 분해" },
-                { id: 12, sub: "알고리즘 설계", desc: "조건, 구조, 효율성" },
-                { id: 13, sub: "프로그래밍 기초", desc: "동작 과정, 변수, 리스트" },
-                { id: 14, sub: "제어 구조", desc: "조건문, 반복문, 중첩" },
-                { id: 15, sub: "함수와 디버깅", desc: "모듈화 및 오류 수정" }
-            ]},
-            { category: "Ⅳ. 인공지능", color: "border-l-rose-500", topics: [
-                { id: 18, sub: "인공지능의 특성", desc: "개념 및 소프트웨어 차이" },
-                { id: 19, sub: "인공지능의 학습", desc: "데이터의 중요성" },
-                { id: 20, sub: "인공지능 문제 해결", desc: "모델 구축 절차" },
-                { id: 21, sub: "인공지능과 윤리", desc: "편향성 및 이용 수칙" }
-            ]}
+            { 
+                category: "Ⅰ. 컴퓨팅 시스템", 
+                color: "border-l-indigo-500", 
+                topics: [
+                    { id: 1, sub: "① 컴퓨팅 시스템", desc: "컴퓨팅 시스템의 개념, 하드웨어 구성 요소, 소프트웨어 분류" },
+                    { id: 2, sub: "② 운영 체제", desc: "운영 체제(OS)의 개념, 역할 및 자원 관리 기능" },
+                    { id: 3, sub: "③ 피지컬 컴퓨팅 시스템", desc: "피지컬 컴퓨팅의 구성, 센서 및 액추에이터 원리" },
+                    { id: 4, sub: "④ 피지컬 컴퓨팅 시스템 구현", desc: "문제 해결 목적에 맞는 구동 및 코딩 작동 실습" }
+                ]
+            },
+            { 
+                category: "Ⅱ. 데이터", 
+                color: "border-l-cyan-500", 
+                topics: [
+                    { id: 5, sub: "⑤ 데이터의 표현 방식", desc: "아날로그와 디지털의 차이 및 종류" },
+                    { id: 6, sub: "⑥ 데이터의 디지털 표현", desc: "문자, 이미지, 소리, 동영상의 표현 방식" },
+                    { id: 7, sub: "⑦ 데이터 수집과 관리", desc: "데이터 수집 설계, 분류 및 저장 방법" },
+                    { id: 8, sub: "⑧ 데이터 구조화", desc: "목록, 표, 다이어그램을 통한 구조화" },
+                    { id: 9, sub: "⑨ 데이터 분석", desc: "상관관계 파악 및 그래프/차트 시각화 기법" }
+                ]
+            },
+            { 
+                category: "Ⅲ. 알고리즘과 프로그래밍", 
+                color: "border-l-amber-500", 
+                topics: [
+                    { id: 10, sub: "⑩ 문제 이해 및 분석", desc: "실생활 문제 분석, 입출력 조건 구조화" },
+                    { id: 11, sub: "⑪ 핵심 요소 찾기", desc: "핵심 요소 추출(추상화) 및 문제 해결 분해" },
+                    { id: 12, sub: "⑫ 알고리즘", desc: "알고리즘의 개념, 충족 조건, 설계" },
+                    { id: 13, sub: "⑬ 알고리즘 분석", desc: "서로 다른 알고리즘의 효율성 및 성능 비교" },
+                    { id: 14, sub: "⑭ 프로그래밍의 이해", desc: "프로그래밍 기초 환경, 변수와 리스트 활용" },
+                    { id: 15, sub: "⑮ 논리 연산과 제어 구조", desc: "연산자, 순차·선택·반복 구조 및 중첩 제어" },
+                    { id: 16, sub: "⑯ 함수와 디버깅", desc: "사용자 정의 함수 구현 및 오류 수정 방법" },
+                    { id: 17, sub: "⑰ 문제를 해결하는 소프트웨어", desc: "SW 개발 프로세스 협업 프로젝트" }
+                ]
+            },
+            { 
+                category: "Ⅳ. 인공지능", 
+                color: "border-l-rose-500", 
+                topics: [
+                    { id: 18, sub: "⑱ 인공지능의 개념과 특성", desc: "역사, 분류 및 일반 소프트웨어와의 차이점" },
+                    { id: 19, sub: "⑲ 인공지능의 학습", desc: "기계학습 방식 분류 및 학습 데이터 수집" },
+                    { id: 20, sub: "⑳ 인공지능을 통한 문제 해결", desc: "인공지능 도구 기획 및 모델 구축 제작 실습" },
+                    { id: 21, sub: "㉑ 인공지능과 윤리", desc: "데이터 편향성 한계 및 사용 가이드라인" }
+                ]
+            },
+            { 
+                category: "Ⅴ. 디지털 문화", 
+                color: "border-l-emerald-500", 
+                topics: [
+                    { id: 22, sub: "㉒ 디지털 사회와 직업의 변화", desc: "현대 직업군 변화 및 미래 진로 탐색" },
+                    { id: 23, sub: "㉓ 디지털 윤리", desc: "사이버 폭력 예방 및 기기 과의존 수칙 행동화" },
+                    { id: 24, sub: "㉔ 개인 정보 보호", desc: "개인 정보 범위 파악 및 유출 예방/대응 수칙" },
+                    { id: 25, sub: "㉕ 저작권 보호", desc: "저작권 개념 및 CCL 올바른 사용 실천" }
+                ]
+            }
         ];
 
-        const allItemsCount = curriculumSchema.flatMap(c => c.topics).length;
-
         const schoolMeta = {
-            sj: { name: "순천승주중", info: "남 1, 여 1 (2명)", tip: "1:1 밀착 코칭 및 협업 프로젝트 권장" },
-            sn: { name: "순천승남중", info: "남 1, 여 2 (3명)", tip: "3인 1조 활동 및 명확한 역할 분담" },
-            na: { name: "순천낙안중", info: "남 7, 여 1 (8명)", tip: "남학생 위주, 도움반/경계선 3명 포함. 단계별 미션 필수" }
+            sj: { name: "순천승주중 (1-1)", info: "남1, 여1 (총 2명)", tip: "학생별 1:1 진척도 맞춤 관리가 가능합니다. 피지컬 컴퓨팅이나 프로그래밍 설계 시 개개인의 아이디어 실현을 끝까지 밀착 지원하세요." },
+            sn: { name: "순천승남중 (1-1)", info: "남1, 여2 (총 3명)", tip: "학급 전원이 3인 1조 공동 협업 프로젝트에 유기적으로 참여할 수 있도록 명확하고 세분화된 소규모 역할을 지정해 주세요." },
+            na: { name: "순천낙안중 (2-1)", info: "남7, 여1 (총 8명, 특수학급 포함)", tip: "남학생 비중이 매우 크며 특수/경계선 학생 3명이 섞여 있습니다. 실생활 시각 분석, 게임 윤리, 실물 조립 등 체험 활동 비중을 높여 지루해하지 않도록 끌어주세요." }
         };
 
-        // --- 2. 앱 상태 ---
+        const totalTopics = curriculumSchema.flatMap(c => c.topics).length;
         let currentSchool = 'sj';
-        let cloudData = { 
-            sj: { progress: [], memo: "" }, 
-            sn: { progress: [], memo: "" }, 
-            na: { progress: [], memo: "" } 
-        };
-        let user = null;
-        let db = null;
-        let auth = null;
-        let appId = 'info-teacher-tracker-v1';
-        let saveTimeout = null;
+        let cloudData = { sj: { progress: [], memo: "" }, sn: { progress: [], memo: "" }, na: { progress: [], memo: "" } };
+        
+        let db, auth, user, saveTimeout;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'info-teacher-final-v4';
 
-        // --- 3. 초기화 (동기화 함수) ---
         const render = () => {
             const content = document.getElementById('curriculum-content');
             if (!content) return;
@@ -172,23 +185,27 @@
 
             curriculumSchema.forEach(cat => {
                 const section = document.createElement('div');
-                section.className = "space-y-3";
                 section.innerHTML = `
-                    <h3 class="text-[11px] font-black text-slate-400 uppercase tracking-widest border-b pb-1 mb-3">${cat.category}</h3>
-                    <div class="grid gap-2">
+                    <div class="category-header">
+                        <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>${cat.category}
+                        </h3>
+                    </div>
+                    <div class="grid gap-4 mt-4">
                         ${cat.topics.map(t => {
-                            const isDone = cloudData[currentSchool].progress.includes(t.id);
+                            const isDone = (cloudData[currentSchool]?.progress || []).includes(t.id);
                             return `
-                                <div onclick="window.toggleProgress(${t.id})" class="progress-card flex items-center justify-between p-4 rounded-2xl border ${isDone ? 'bg-blue-50 border-blue-200 shadow-inner' : 'bg-white border-slate-100'} cursor-pointer hover:border-blue-300 transition-all border-l-4 ${isDone ? 'border-l-blue-600' : cat.color}">
+                                <div onclick="window.toggleProgress(${t.id})" class="progress-card flex items-center justify-between p-5 rounded-2xl border ${isDone ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-100 shadow-sm'} cursor-pointer hover:border-blue-400 transition-all ${isDone ? 'border-l-blue-600' : cat.color}">
                                     <div class="flex items-center gap-4">
-                                        <div class="w-6 h-6 rounded-lg border-2 flex items-center justify-center ${isDone ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200 bg-white'}">
-                                            ${isDone ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                                        <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center ${isDone ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200 text-transparent'}">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
                                         </div>
                                         <div>
-                                            <p class="text-sm font-bold ${isDone ? 'text-blue-900' : 'text-slate-700'}">${t.sub}</p>
-                                            <p class="text-[10px] text-slate-400">${t.desc}</p>
+                                            <p class="text-[16px] font-bold ${isDone ? 'text-blue-900' : 'text-slate-800'}">${t.sub}</p>
+                                            <p class="text-xs text-slate-400 font-medium">${t.desc}</p>
                                         </div>
                                     </div>
+                                    ${isDone ? '<span class="done-pill">진도 완료</span>' : ''}
                                 </div>
                             `;
                         }).join('')}
@@ -197,26 +214,23 @@
                 content.appendChild(section);
             });
 
-            // 달성도 업데이트
-            const doneCount = (cloudData[currentSchool].progress || []).length;
-            const percent = Math.round((doneCount / allItemsCount) * 100);
+            const doneCount = (cloudData[currentSchool]?.progress || []).length;
+            const percent = Math.round((doneCount / totalTopics) * 100);
             document.getElementById('progress-bar').style.width = percent + '%';
             document.getElementById('progress-percent').innerText = percent + '%';
-            document.getElementById('progress-count').innerText = `${doneCount} / ${allItemsCount}`;
-            document.getElementById('school-memo').value = cloudData[currentSchool].memo || "";
+            document.getElementById('progress-count').innerText = `${doneCount} / ${totalTopics} 소단원 완료`;
+            document.getElementById('school-memo').value = cloudData[currentSchool]?.memo || "";
         };
 
-        // --- 4. 외부 노출 함수들 (탭, 토글 등) ---
         window.switchTab = (schoolId) => {
             currentSchool = schoolId;
-            // 탭 스타일 업데이트
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('tab-active');
-                btn.classList.add('text-slate-400');
+                btn.classList.remove('tab-active', 'border-blue-600');
+                btn.classList.add('text-slate-400', 'border-transparent');
             });
-            document.getElementById(`tab-${schoolId}`).classList.add('tab-active');
-            document.getElementById(`tab-${schoolId}`).classList.remove('text-slate-400');
-            
+            const activeTab = document.getElementById(`tab-${schoolId}`);
+            activeTab.classList.add('tab-active', 'border-blue-600');
+            activeTab.classList.remove('text-slate-400', 'border-transparent');
             render();
         };
 
@@ -239,43 +253,33 @@
 
         const debounceSave = () => {
             if (saveTimeout) clearTimeout(saveTimeout);
-            document.getElementById('sync-status').innerText = "○ 변경사항 감지됨 (저장 대기)";
-            saveTimeout = setTimeout(saveToCloud, 2000);
+            document.getElementById('sync-status').innerText = "○ 입력 중... 자동 저장 대기";
+            saveTimeout = setTimeout(saveToCloud, 1500);
         };
 
         window.saveToCloud = async () => {
-            if (!user || !db) {
-                // 오프라인 상태면 로컬이라도 저장
-                localStorage.setItem('local_fallback_data', JSON.stringify(cloudData));
-                document.getElementById('sync-status').innerText = "● 로컬에 임시 저장됨 (인터넷 확인 필요)";
-                return;
-            }
-            document.getElementById('sync-status').innerText = "⏳ 클라우드 저장 중...";
+            localStorage.setItem('lesson_local_data_v5', JSON.stringify(cloudData));
+            if (!user || !db) return;
             try {
-                const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'masterData');
-                await setDoc(docRef, cloudData);
-                document.getElementById('sync-status').innerText = "● 클라우드 저장 완료";
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'data', 'master'), cloudData);
+                document.getElementById('sync-status').innerText = "● 실시간 클라우드 동기화 완료";
             } catch (err) {
-                console.error("Save Error", err);
-                document.getElementById('sync-status').innerText = "❌ 저장 실패 (연결 오류)";
+                document.getElementById('sync-status').innerText = "❌ 클라우드 저장 실패 (로컬 대체)";
             }
         };
 
-        // --- 5. Firebase 초기화 및 실행 ---
         const init = async () => {
-            // 로컬 스토리지에서 먼저 불러오기 (빠른 로딩용)
-            const local = localStorage.getItem('local_fallback_data');
+            const local = localStorage.getItem('lesson_local_data_v5');
             if (local) cloudData = JSON.parse(local);
             render();
 
-            // Firebase 설정 확인 및 연결
-            try {
-                if (typeof __firebase_config !== 'undefined') {
+            if (typeof __firebase_config !== 'undefined') {
+                try {
                     const config = JSON.parse(__firebase_config);
                     const app = initializeApp(config);
                     auth = getAuth(app);
                     db = getFirestore(app);
-                    
+
                     onAuthStateChanged(auth, (u) => {
                         user = u;
                         if (user) {
@@ -290,28 +294,22 @@
                     } else {
                         await signInAnonymously(auth);
                     }
+                } catch (e) {
+                    console.error("Firebase 로딩 실패, 로컬 모드로 작동합니다.", e);
                 }
-            } catch (e) {
-                console.warn("Cloud connection skipped: ", e.message);
-                document.getElementById('sync-status').innerText = "● 오프라인 모드 (로컬 저장만 지원)";
             }
         };
 
         const setupSync = () => {
-            if (!user || !db) return;
-            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'masterData');
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    cloudData = docSnap.data();
+            const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'data', 'master');
+            onSnapshot(docRef, (snap) => {
+                if (snap.exists()) {
+                    cloudData = snap.data();
                     render();
-                    document.getElementById('sync-status').innerText = "● 클라우드 데이터 동기화됨";
                 }
-            }, (err) => {
-                console.error("Sync Error:", err);
-            });
+            }, (err) => console.error("동기화 오류:", err));
         };
 
-        // 앱 시작
         window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
